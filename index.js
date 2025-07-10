@@ -16,6 +16,10 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log("Mongo error", err));
 
+app.get("/", (req, res) => {
+  res.send("🎵 Vibe Generator API is working!");
+});
+
 app.use("/api/vibes", vibeRoutes);
 
 const PORT = process.env.PORT || 5000;
