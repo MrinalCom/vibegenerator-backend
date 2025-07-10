@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const reviewSchema = new mongoose.Schema({
   text: String,
-  rating: Number,
+  rating: String,
   source: String,
   link: String,
 });
@@ -14,6 +14,7 @@ const placeSchema = new mongoose.Schema({
   reviews: [reviewSchema],
   summary: String,
   tags: [String],
+  image: String,
 });
 
 export default mongoose.model("Place", placeSchema);

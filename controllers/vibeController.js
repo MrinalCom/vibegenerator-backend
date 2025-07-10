@@ -1,63 +1,140 @@
 import Place from "../models/Place.js";
-import { generateSummaryWithRAG } from "../services/vibeGenerator.js";
+import {
+  generateSummaryWithRAG,
+  extractTagsFromSummary,
+  extractQueryDetailsFromText,
+} from "../services/vibeGenerator.js";
 import { scrapeGoogleMaps } from "../services/scraper.js";
+
+// export const scrapeAndSave = async (req, res) => {
+//   try {
+//     const { query } = req.query;
+
+//     if (!query) {
+//       return res.status(400).json({ error: "Missing required fields" });
+//     }
+//     const extracted = await extractQueryDetailsFromText(query);
+
+//     if (!extracted)
+//       return res.status(500).json({ error: "Failed to parse query" });
+
+//     const { city, category, tags } = extracted;
+
+//     // Step 1: Scrape reviews
+//     const reviews = await scrapeGoogleMaps(query);
+
+//     // Step 2: Generate summary from reviews
+//     const summary = await generateSummaryWithRAG(reviews);
+
+//     // Step 4: Save to MongoDB
+//     const place = new Place({
+//       name=query,
+//       city,
+//       category,
+//       reviews,
+//       summary,
+//       tags,
+//     });
+
+//     await place.save();
+
+//     res.json({ message: "✅ Place saved with summary and tags!", place });
+//   } catch (error) {
+//     console.error("Scrape Error:", error.message);
+//     res.status(500).json({ error: "❌ Failed to scrape and save reviews." });
+//   }
+// };
+
+// A basic tag extractor (improve with OpenAI or Gemini later)
+// const extractTagsFromSummary = (summary) => {
+//   const lower = summary.toLowerCase();
+//   const tags = [];
+
+//   if (lower.includes("cozy")) tags.push("cozy");
+//   if (lower.includes("aesthetic")) tags.push("aesthetic");
+//   if (lower.includes("lively")) tags.push("lively");
+//   if (lower.includes("quiet")) tags.push("quiet");
+//   if (lower.includes("peaceful")) tags.push("peaceful");
+//   if (lower.includes("budget")) tags.push("budget-friendly");
+//   if (lower.includes("floral")) tags.push("floral");
+//   if (lower.includes("minimal")) tags.push("minimal");
+
+//   return tags;
+// };
+export const getPlaces = async (req, res) => {
+  try {
+    const places = await Place.find();
+    res.json({ results: places });
+  } catch (error) {
+    console.error("Error fetching places:", error);
+    res.status(500).json({ message: "Failed to fetch places" });
+  }
+};
 
 export const scrapeAndSave = async (req, res) => {
   try {
-    const { name, city, category, googleUrl } = req.body;
+    const { query } = req.query;
+    if (!query) return res.status(400).json({ error: "Missing query" });
 
-    if (!name || !city || !category || !googleUrl) {
-      return res.status(400).json({ error: "Missing required fields" });
+    // Step 1: Extract city/category/tags using Gemini
+    const extracted = await extractQueryDetailsFromText(query);
+    if (!extracted)
+      return res.status(500).json({ error: "Failed to parse query" });
+
+    console.log(extracted);
+
+    console.log("first step done");
+
+    const { city, category, tags } = extracted;
+    console.log("City category and tags is", city, category, tags);
+
+    // Step 2: Search Google Maps and scrape top places
+    const scrapedPlaces = await scrapeGoogleMaps(`${category} in ${city}`);
+    console.log("scraped places is ", scrapedPlaces);
+
+    const savedPlaces = [];
+
+    for (const place of scrapedPlaces) {
+      const { name, reviews, image } = place;
+      console.log("Name is", name);
+      console.log("Reviews is", reviews);
+
+      // Step 3: Generate vibe summary
+      const summary = await generateSummaryWithRAG(reviews);
+
+      // Step 4: Auto-tag (from summary or extracted tags)
+      const combinedTags = [
+        ...new Set([
+          ...tags,
+          ...((await extractTagsFromSummary(summary).catch((err) => {
+            console.error("Tag extraction failed:", err.message);
+            return [];
+          })) || []),
+        ]),
+      ];
+
+      // Step 5: Save to MongoDB
+      const saved = new Place({
+        name,
+        city,
+        category,
+        reviews,
+        summary,
+        tags: combinedTags,
+        image,
+      });
+
+      await saved.save();
+      savedPlaces.push(saved);
     }
 
-    const reviews = await scrapeGoogleMaps(googleUrl);
-
-    const place = new Place({
-      name,
-      city,
-      category,
-      tags: [], // Optional
-      rating: 4.5,
-      reviews,
+    res.json({
+      message: "✅ Places saved!",
+      count: savedPlaces.length,
+      results: savedPlaces,
     });
-
-    await place.save();
-
-    res.json({ message: "✅ Place saved!", place });
-  } catch (error) {
-    console.error("Scrape Error:", error.message);
-    res.status(500).json({ error: "❌ Failed to scrape and save reviews." });
-  }
-};
-
-export const getVibesByCity = async (req, res) => {
-  const { city, category } = req.query;
-  const places = await Place.find({ city, category });
-  res.json(places);
-};
-
-export const generateVibeSummary = async (req, res) => {
-  try {
-    const { placeId, customPrompt } = req.query;
-
-    if (!placeId) {
-      return res.status(400).json({ error: "Missing placeId" });
-    }
-
-    const place = await Place.findById(placeId);
-    if (!place) return res.status(404).json({ error: "Place not found" });
-
-    const summary = await generateSummaryWithRAG(place.reviews, customPrompt);
-
-    res.json({ summary });
   } catch (err) {
-    console.error("generateVibeSummary error:", err.message);
-    res.status(500).json({ error: "Server error" });
+    console.error("Scrape Error:", err.message);
+    res.status(500).json({ error: "❌ Failed to scrape and save places." });
   }
-};
-
-export const handlePersonalizedQuery = async (req, res) => {
-  const { query } = req.query;
-  const result = await generateSummaryWithRAG([], query); // no reviews, use RAG
-  res.json({ story: result });
 };
