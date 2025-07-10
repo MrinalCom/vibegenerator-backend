@@ -1,0 +1,34 @@
+# Node.js
+node_modules/
+.env
+dist/
+build/
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Output files
+*.out
+*.tsbuildinfo
+
+# Optional for TypeScript projects
+*.tsbuildinfo
+
+# dotenv backups
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Coverage and testing
+coverage/
+nyc_output/
+jest-html-reporters-*.html
