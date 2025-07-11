@@ -227,7 +227,6 @@ import fs from "fs";
 export const scrapeGoogleMaps = async (searchQuery) => {
   const browser = await chromium.launch({
     headless: true,
-    channel: "chrome", // force full Chrome, not headless_shell
   });
   const page = await browser.newPage();
 
