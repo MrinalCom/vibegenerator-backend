@@ -44,16 +44,18 @@ Summary:
 export const extractQueryDetailsFromText = async (query) => {
   try {
     const prompt = `
-Extract the city, category (like cafe, park, etc.), and any vibe tags (like romantic, aesthetic, peaceful) from this query.
-Return only valid JSON with the structure: 
-{
-  "city": "...",
-  "category": "...",
-  "tags": ["...", "..."]
-}
+        Extract the city, category (like cafe, park, etc.), vibe tags (like romantic, aesthetic, peaceful), and place name if the query mentions a specific one.
 
-Query: "${query}"
-`;
+        Return only valid JSON in the format:
+        {
+          "city": "...",
+          "category": "...",
+          "tags": ["...", "..."],
+          "placeName": "..." // leave null or empty string if not specified
+        }
+
+        Query: "${query}"
+        `;
 
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,

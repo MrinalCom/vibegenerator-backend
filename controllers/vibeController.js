@@ -85,11 +85,26 @@ export const scrapeAndSave = async (req, res) => {
 
     console.log("first step done");
 
-    const { city, category, tags } = extracted;
-    console.log("City category and tags is", city, category, tags);
+    const { city, category, tags, placeName } = extracted;
+    console.log(
+      "City, category, tags, placeName →",
+      city,
+      category,
+      tags,
+      placeName
+    );
+
+    const safePlaceName = placeName?.trim() || null;
+    const tagText = tags?.length ? tags.join(" ") : "";
+
+    const searchText = safePlaceName
+      ? `${tagText} ${safePlaceName} ${city}`.trim()
+      : `${tagText} ${category} in ${city}`.trim();
+
+    console.log("🔍 Final searchText →", searchText);
 
     // Step 2: Search Google Maps and scrape top places
-    const scrapedPlaces = await scrapeGoogleMaps(`${category} in ${city}`);
+    const scrapedPlaces = await scrapeGoogleMaps(searchText);
     console.log("scraped places is ", scrapedPlaces);
 
     const savedPlaces = [];
