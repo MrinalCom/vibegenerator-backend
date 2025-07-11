@@ -21,6 +21,7 @@
     "faiss-node": "^0.5.1",
     "mongoose": "^8.16.2",
     "openai": "^5.8.3",
+    "playwright": "^1.54.0",
     "puppeteer": "^24.12.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
