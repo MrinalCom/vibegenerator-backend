@@ -44,18 +44,50 @@ Summary:
 export const extractQueryDetailsFromText = async (query) => {
   try {
     const prompt = `
-        Extract the city, category (like cafe, park, etc.), vibe tags (like romantic, aesthetic, peaceful), and place name if the query mentions a specific one.
+You are an intelligent assistant that helps extract structured data from location-related queries.
 
-        Return only valid JSON in the format:
-        {
-          "city": "...",
-          "category": "...",
-          "tags": ["...", "..."],
-          "placeName": "..." // leave null or empty string if not specified
-        }
+Given a natural language query, extract:
+- "city": Always required.
+- "category": If not directly mentioned, try to infer from context. For generic queries like "places to visit", set it to "tourist spots" or "attractions".
+- "tags": Optional vibe-related tags like romantic, peaceful, budget-friendly, aesthetic, etc. Infer if not explicitly mentioned.
+- "placeName": Only set if a specific named place (e.g., "Marine Drive") is mentioned. Otherwise, leave as null.
 
-        Query: "${query}"
-        `;
+Return only **valid JSON** in this format:
+{
+  "city": "...",
+  "category": "...",
+  "tags": ["...", "..."],
+  "placeName": null
+}
+
+Example Queries:
+
+"Places to visit in Mumbai"
+→ {
+  "city": "Mumbai",
+  "category": "tourist spots",
+  "tags": ["popular", "local favorite"],
+  "placeName": null
+}
+
+"Romantic cafes in Delhi"
+→ {
+  "city": "Delhi",
+  "category": "cafe",
+  "tags": ["romantic"],
+  "placeName": null
+}
+
+"Visit Marine Drive at night"
+→ {
+  "city": "Mumbai",
+  "category": "seaside attraction",
+  "tags": ["nightlife", "peaceful"],
+  "placeName": "Marine Drive"
+}
+
+Query: "${query}"
+`;
 
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
